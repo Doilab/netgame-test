@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>3D Net Game</title>
+<style>
+  body { margin:0; overflow:hidden; background:#111; color:white; }
+  #info {
+    position:absolute;
+    top:10px;
+    left:10px;
+    font-family:sans-serif;
+  }
+</style>
+</head>
+<body>
+<a href="index2D.html">2D version</a>
+<br>
+<div id="info">Connecting...</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+const socket = io();
+const info = document.getElementById("info");
+
+let myId = null;
+let myColor = null;
+let players = {};
+let meshes = {};
+
+
+// ===== Three.js 初期化 =====
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth/window.innerHeight,
+  0.1,
+  1000
+);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener("resize", () => {
+
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  renderer.setSize(width, height);
+
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+});
+
+camera.position.set(0, 20, 30);
+camera.lookAt(0,0,0);
+
+// ライト
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10,20,10);
+scene.add(light);
+
+// 地面
+const planeGeo = new THREE.PlaneGeometry(50,50);
+const planeMat = new THREE.MeshStandardMaterial({color:0x333333});
+const plane = new THREE.Mesh(planeGeo, planeMat);
+plane.rotation.x = -Math.PI/2;
+scene.add(plane);
+
+
+// ===== プレイヤー更新 =====
+
+socket.on("init", (data) => {
+  myId = data.id;
+  myColor = data.color;
+});
+
+socket.on("updatePlayers", (serverPlayers) => {
+  players = serverPlayers;
+
+  const count = Object.keys(players).length;
+  info.innerHTML =
+    `Your color: <span style="color:${myColor}">${myColor}</span>
+     | Players: ${count}`;
+
+  updateMeshes();
+});
+
+function updateMeshes() {
+
+  // 既存メッシュ削除（いないプレイヤー）
+  for (let id in meshes) {
+    if (!players[id]) {
+      scene.remove(meshes[id]);
+      delete meshes[id];
+    }
+  }
+
+  // 新規追加
+  for (let id in players) {
+
+    if (!meshes[id]) {
+
+      const geometry = new THREE.BoxGeometry(2,2,2);
+      const material = new THREE.MeshStandardMaterial({
+        color: players[id].color
+      });
+
+      const cube = new THREE.Mesh(geometry, material);
+      scene.add(cube);
+      meshes[id] = cube;
+    }
+
+    // 位置更新（XZ平面）
+    meshes[id].position.x = players[id].x / 20 - 15;
+    meshes[id].position.z = players[id].y / 20 - 10;
+    meshes[id].position.y = 1;
+  }
+}
+
+
+// ===== マウス移動で送信 =====
+
+window.addEventListener("mousemove", (e) => {
+  if (!myId) return;
+
+  const x = e.clientX;
+  const y = e.clientY;
+
+  socket.emit("move", {x, y});
+});
+
+
+// ===== 描画ループ =====
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+animate();
+
+</script>
+</body>
+</html>

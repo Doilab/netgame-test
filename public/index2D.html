@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mini Net Game</title>
+<style>
+  body { background:#111; color:white; text-align:center; }
+  canvas { background:#222; display:block; margin:auto; }
+</style>
+</head>
+<body>
+
+<h3 id="info">Connecting...</h3>
+<canvas id="game" width="600" height="400"></canvas>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const info = document.getElementById("info");
+
+let myId = null;
+let myColor = null;
+let players = {};
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!myId) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  socket.emit("move", {x, y});
+});
+
+socket.on("init", (data) => {
+  myId = data.id;
+  myColor = data.color;
+});
+
+socket.on("updatePlayers", (serverPlayers) => {
+  players = serverPlayers;
+
+  const count = Object.keys(players).length;
+  info.innerHTML =
+    `Your color: <span style="color:${myColor}">${myColor}</span>
+     | Players connected: ${count}`;
+});
+
+socket.on("full", () => {
+  alert("Server is full (10 players)");
+});
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  for (let id in players) {
+    ctx.fillStyle = players[id].color;
+    ctx.beginPath();
+    ctx.arc(players[id].x, players[id].y, 10, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
