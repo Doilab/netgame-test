@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>3D Net Game</title>
 <style>
   body { margin:0; overflow:hidden; background:#111; color:white; }
@@ -125,16 +126,25 @@ function updateMeshes() {
 }
 
 
-// ===== マウス移動で送信 =====
+// ===== マウス・タッチ移動で送信 =====
+function sendPosition(x, y) {
+  socket.emit("move", { x, y });
+}
 
 window.addEventListener("mousemove", (e) => {
   if (!myId) return;
-
-  const x = e.clientX;
-  const y = e.clientY;
-
-  socket.emit("move", {x, y});
+  sendPosition(e.clientX, e.clientY);
 });
+
+window.addEventListener("touchmove", (e) => {
+  if (!myId) return;
+  const t = e.touches[0];
+  sendPosition(t.clientX, t.clientY);
+});
+
+window.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+}, { passive:false });
 
 
 // ===== 描画ループ =====
