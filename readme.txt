@@ -29,6 +29,8 @@ npm start
 ブラウザで
 http://localhost:3000
 
-
-
+---
+TODO
+STLなどの３Dデータを読み込んで表示
+全方向操縦
 
