@@ -20,3 +20,15 @@ nvm install --lts
 node -v
 npm -v
 
+
+----
+ローカルで実行するには
+npm install（最初の１回だけでよい？）
+npm start
+
+ブラウザで
+http://localhost:3000
+
+
+
+
